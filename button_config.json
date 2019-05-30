@@ -1,0 +1,7 @@
+{
+    "Pause/Play" : "space",
+    "Vol+" : "up",
+    "Vol-"  : "down",
+    "Fast Forward" : "right",
+    "Rewind" : "left"
+}
