@@ -1,7 +1,9 @@
 {
     "Pause/Play" : "space",
-    "Vol+" : "up",
-    "Vol-"  : "down",
-    "Fast Forward" : "right",
-    "Rewind" : "left"
+    "Vol+" : "up_arrow",
+    "Vol-"  : "down_arrow",
+    "Fast Forward" : "right_arrow",
+    "Rewind" : "left_arrow",
+    "Power" : ["alt", "f4"],
+    "EQ" : "f"
 }
