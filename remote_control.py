@@ -2,61 +2,79 @@ import serial
 import json
 import re
 from pynput.keyboard import Key, Controller, KeyCode
+import config
 
-def press_key(button):
-    with open ("button_config.json", "r") as json_file:
-        json_str = json_file.read()
-        configs = json.loads(json_str)
+def interpret_remote_input(remote_input, last_input):
+    remote_input = check_for_holding(remote_input, last_input)
 
-        try:
-            with open ("virtual_key_codes.json", "r") as json_file:
-                json_str = json_file.read()
-                codes = json.loads(json_str)
+    button = config.remote_configs.get(remote_input, "key not found")
 
-            keyboard = Controller()
-            keys = configs[button]
+    if(button == "key not found"):
+        raise KeyError("Remote error, ", remote_input, "not recognized.")
+    else:
+        print(button)
+        return button
 
-            if type(keys) is list:
-                for key in keys:
-                    keyboard.press(KeyCode(codes[key]))
-                for key in keys:
-                    keyboard.release(KeyCode(codes[key]))
-            else:
-                keyboard.press(KeyCode(codes[keys]))
-                keyboard.release(KeyCode(codes[keys]))
+def check_for_holding(current_input, last_input):
+    if(current_input == config.remote_configs["Hold"]):
+        return last_input
+    else:
+        return current_input
+
+def interpret_button_press(button):
+    remote_key_name = config.button_configs.get(button, "key not found")
+
+    if(remote_key_name == "key not found"):
+        raise KeyError("Button error", button, "not configured.")
+    else:
+        print(remote_key_name)
+        return remote_key_name
 
 
-        except KeyError:
-            print("Error,", button, "not configured")
+def interpret_key(remote_key_name):
+    key_codes = config.key_configs.get(remote_key_name, "key not found")
+
+    if(key_codes == "key not found"):
+        raise KeyError("Key error,", remote_key_name, "not configured.")
+    else:
+        press_key(key_codes)
 
 
-with open ("remote_frequencies.json", "r") as json_file:
-    json_str = json_file.read()
-    frequencies = json.loads(json_str)
+def press_key(key_codes):
+    keyboard = Controller()
+
+    if type(key_codes) is list:
+        for key_code in key_codes:
+            keyboard.press(key_code)
+
+        for kye_code in key_codes:
+            keyboard.release(key_codes)
+    else:
+        keyboard.press(key_codes)
+        keyboard.release(key_codes)
+
 
 arduino = serial.Serial("COM3", 115200, timeout=.1)
-last_frequency = 0
 
 while True:
-    data = arduino.readline()[:-2] #the last bit gets rid of the new-line chars
+    last_input = ""
+    arduino_input = arduino.readline()[:-2] #the last bit gets rid of the new-line chars
 
-    if data:
-        matches = re.findall("b'(\d+)'", str(data))
-        frequency = matches[0]
-
-        if frequency == frequencies["Hold"]:
-            frequency = last_frequency
-        else:
-            last_frequency = frequency
+    if arduino_input:
+        matches = re.findall("b'(\d+)'", str(arduino_input))
+        remote_input = matches[0]
+        button = ""
 
         try:
-            button = frequencies[frequency]
-            print(frequencies[frequency])
-        except KeyError:
-            print("Error, ", frequency, " not recognized.")
-            continue
+            button = interpret_remote_input(remote_input, last_input)
+            key = interpret_button_press(button)
+            interpret_key(key)
 
-        press_key(button)
+            last_input = remote_input
+        except KeyError as ke:
+            print(ke)
 
-        if button == "Power" :
-            exit()
+        if button == "Power":
+            break
+
+arduino.close()
